@@ -19,8 +19,7 @@ class App
   end
 
   def valid_request_path?(env)
-    request_path = env['REQUEST_PATH']
-    request_path == '/time/' || request_path == '/time'
+    env['REQUEST_PATH'] == '/time'
   end
 
   def invalid_request
