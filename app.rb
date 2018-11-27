@@ -1,28 +1,30 @@
+require_relative 'date_format'
+
 class App
   def call(env)
-    return invalid_request(env) unless valid_request?(env)
-    formats = parse_formates(env)
-    return invalid_formats(formats) unless valid_formats?(formats)
-    return processed_date(formats)
+    request = Rack::Request.new(env)
+    return respond_invalid_request unless valid_request?(request)
+    formats = parse_formates(request)
+    date = DateFormat.new(formats)
+    return respond_invalid_formats(date.invalid_formats) unless date.valid_formats?
+    return respond_date(date.date)
   end
 
   private
 
-  VALID_FORMATS = ['year', 'month', 'day', 'hour', 'minute', 'second'].freeze
-
-  def valid_request?(env)
-    valid_request_method?(env) && valid_request_path?(env)
+  def valid_request?(request)
+    valid_request_method?(request) && valid_request_path?(request)
   end
 
-  def valid_request_method?(env)
-    env['REQUEST_METHOD'] == 'GET'
+  def valid_request_method?(request)
+    request.get?
   end
 
-  def valid_request_path?(env)
-    env['REQUEST_PATH'] == '/time'
+  def valid_request_path?(request)
+    request.path == '/time'
   end
 
-  def invalid_request
+  def respond_invalid_request
     [
       404, 
       default_header, 
@@ -30,45 +32,28 @@ class App
     ]
   end
 
-  def parse_formates(env)
-    query_string = Rack::Utils.parse_nested_query(env['QUERY_STRING'])
-    format_param = query_string['format']
+  def parse_formates(request)
+    query_string = request.query_string
+    query_params = Rack::Utils.parse_nested_query(query_string)
+    format_param = query_params['format']
     format_param.split(',')
   end
 
-  def valid_formats?(formats)
-    (formats - VALID_FORMATS).empty?
+  def respond_date(date_string)
+    [
+      200, 
+      default_header, 
+      ["#{date_string}\n"]
+    ]
   end
 
-  def invalid_formats(formats)
-    invalid_formats_string = (formats - VALID_FORMATS).join(', ')
+  def respond_invalid_formats(invalid_formats)
+    invalid_formats_string = invalid_formats.join(', ')
     [
       400, 
       default_header, 
       ["Unknown time format [#{invalid_formats_string}]\n"]
     ]
-  end
-
-  def processed_date(formats)
-    date_array = formats.map{ |format| process_format(format) }
-    date = date_array.join('-')
-    [
-      200, 
-      default_header, 
-      ["#{date}\n"]
-    ]
-  end
-
-  def process_format(format)
-    time = Time.now
-    case format
-    when 'year' then time.year
-    when 'month' then time.month.to_s.rjust(2, '0')
-    when 'day' then time.day.to_s.rjust(2, '0')
-    when 'hour' then time.hour.to_s.rjust(2, '0')
-    when 'minute' then time.min.to_s.rjust(2, '0')
-    when 'second' then time.sec.to_s.rjust(2, '0')
-    end
   end
 
   def default_header
