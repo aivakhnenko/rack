@@ -1,35 +1,23 @@
-require_relative 'date_format'
+require_relative 'date_formatter'
 
 class App
+  DEFAULT_HEADER = { 'Content-Type' => 'text/plain' }.freeze
+
   def call(env)
     request = Rack::Request.new(env)
     return respond_invalid_request unless valid_request?(request)
+
     formats = parse_formates(request)
-    date = DateFormat.new(formats)
-    return respond_invalid_formats(date.invalid_formats) unless date.valid_formats?
-    return respond_date(date.date)
+    formatter = DateFormatter.new(formats)
+
+    return respond_invalid_formats(formatter.invalid_formats) unless formatter.valid_formats?
+    return respond_date(formatter.date)
   end
 
   private
 
   def valid_request?(request)
-    valid_request_method?(request) && valid_request_path?(request)
-  end
-
-  def valid_request_method?(request)
-    request.get?
-  end
-
-  def valid_request_path?(request)
-    request.path == '/time'
-  end
-
-  def respond_invalid_request
-    [
-      404, 
-      default_header, 
-      ["Not found\n"]
-    ]
+    request.get? && request.path == '/time'
   end
 
   def parse_formates(request)
@@ -39,24 +27,24 @@ class App
     format_param.split(',')
   end
 
+  def respond_invalid_request
+    make_response(404, 'Not found')
+  end
+
   def respond_date(date_string)
-    [
-      200, 
-      default_header, 
-      ["#{date_string}\n"]
-    ]
+    make_response(200, date_string)
   end
 
   def respond_invalid_formats(invalid_formats)
     invalid_formats_string = invalid_formats.join(', ')
-    [
-      400, 
-      default_header, 
-      ["Unknown time format [#{invalid_formats_string}]\n"]
-    ]
+    make_response(400, "Unknown time format [#{invalid_formats_string}]")
   end
 
-  def default_header
-    { 'Content-Type' => 'text/plain' }
+  def make_response(code, body)
+    [
+      code, 
+      DEFAULT_HEADER, 
+      ["#{body}\n"]
+    ]
   end
 end
