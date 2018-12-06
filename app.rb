@@ -11,7 +11,7 @@ class App
     formatter = DateFormatter.new(formats)
 
     return respond_invalid_formats(formatter.invalid_formats) unless formatter.valid_formats?
-    return respond_date(formatter.date)
+    respond_date(formatter.date)
   end
 
   private

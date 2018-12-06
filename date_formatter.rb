@@ -2,7 +2,7 @@ class DateFormatter
   FORMATS_TO_ACTIONS = { year: '%Y', month: '%m', day: '%d', hour: '%H', minute: '%M', second: '%S' }.freeze
 
   def initialize(formats)
-    @formats = formats.map { |format| format.to_sym }
+    @formats = formats.map(&:to_sym)
   end
 
   def valid_formats
